@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>工资统计查询</h2>
+        <a href="{{ url_for('employee_list') }}" class="btn btn-secondary">返回</a>
+    </div>
+    
+    <!-- 筛选控件 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="month" class="form-label">月份</label>
+                    <input type="month" class="form-control" id="month" name="month" value="{{ current_month }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="dept" class="form-label">科室</label>
+                    <select class="form-select" id="dept" name="dept" onchange="updatePositions()">
+                        <option value="">所有科室</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if current_dept == dept.id %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="position" class="form-label">职位</label>
+                    <select class="form-select" id="position" name="position">
+                        <option value="">所有职位</option>
+                        {% for dept_name, positions in positions_by_dept.items() %}
+                        <optgroup label="{{ dept_name }}" class="position-group" data-dept="{{ dept_name }}">
+                            {% for pos in positions %}
+                            <option value="{{ pos }}" {% if current_position == pos %}selected{% endif %}>
+                                {{ pos }}
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 总体统计 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">总体统计</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">员工总数</h5>
+                            <p class="card-text h3">{{ stats.total_employees }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">基本工资总额</h5>
+                            <p class="card-text h3">{{ "%.2f"|format(stats.total_base_salary) }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">津贴总额</h5>
+                            <p class="card-text h3">{{ "%.2f"|format(stats.total_benefits) }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">奖金总额</h5>
+                            <p class="card-text h3">{{ "%.2f"|format(stats.total_bonus) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">保险总额</h5>
+                            <p class="card-text h3">{{ "%.2f"|format(stats.total_insurance) }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">住房公积金总额</h5>
+                            <p class="card-text h3">{{ "%.2f"|format(stats.total_housing_fund) }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">实际工资总额</h5>
+                            <p class="card-text h3">{{ "%.2f"|format(stats.total_actual_salary) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 按部门统计 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">按部门统计</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>部门</th>
+                            <th>人数</th>
+                            <th>工资总额</th>
+                            <th>平均工资</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dept_name, dept_stats in stats.by_department.items() %}
+                        <tr>
+                            <td>{{ dept_name }}</td>
+                            <td>{{ dept_stats.count }}</td>
+                            <td>{{ "%.2f"|format(dept_stats.total_salary) }}</td>
+                            <td>{{ "%.2f"|format(dept_stats.total_salary / dept_stats.count) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 按职位统计 -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">按职位统计</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>职位</th>
+                            <th>人数</th>
+                            <th>工资总额</th>
+                            <th>平均工资</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pos_name, pos_stats in stats.by_position.items() %}
+                        <tr>
+                            <td>{{ pos_name }}</td>
+                            <td>{{ pos_stats.count }}</td>
+                            <td>{{ "%.2f"|format(pos_stats.total_salary) }}</td>
+                            <td>{{ "%.2f"|format(pos_stats.total_salary / pos_stats.count) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updatePositions() {
+    const deptSelect = document.getElementById('dept');
+    const positionSelect = document.getElementById('position');
+    const selectedDept = deptSelect.options[deptSelect.selectedIndex].text;
+    
+    // 重置职位选择
+    positionSelect.value = '';
+    
+    // 显示/隐藏职位选项组
+    const positionGroups = positionSelect.getElementsByClassName('position-group');
+    for (let group of positionGroups) {
+        if (selectedDept === '所有科室' || group.dataset.dept === selectedDept) {
+            group.style.display = '';
+        } else {
+            group.style.display = 'none';
+        }
+    }
+}
+
+// 页面加载时初始化职位选择
+document.addEventListener('DOMContentLoaded', updatePositions);
+</script>
+{% endblock %} 

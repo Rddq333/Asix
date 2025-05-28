@@ -327,9 +327,13 @@ def salary_input():
     total = query.count()
     
     # 添加分页和排序
+    # 使用CASE语句处理NULL值，将NULL值转换为0
     employees = query.order_by(
         Employee.department_id,
-        Salary.base_salary.desc().nullslast()
+        db.case(
+            (Salary.base_salary.is_(None), 0),
+            else_=Salary.base_salary
+        ).desc()
     ).offset((page - 1) * per_page).limit(per_page).all()
     
     # 获取每个员工指定月份的工资信息
@@ -371,6 +375,8 @@ def salary_history(employee_id):
     
     # 计算每月的实际工资
     salary_history = []
+    yearly_stats = {}
+    
     for salary in salaries:
         actual_salary = salary.base_salary + salary.benefits + salary.bonus - salary.insurance - salary.housing_fund
         salary_history.append({
@@ -382,10 +388,30 @@ def salary_history(employee_id):
             'housing_fund': salary.housing_fund,
             'actual_salary': actual_salary
         })
+        
+        # 计算年度统计
+        year = salary.month.year
+        if year not in yearly_stats:
+            yearly_stats[year] = {
+                'base_salary': 0,
+                'benefits': 0,
+                'bonus': 0,
+                'insurance': 0,
+                'housing_fund': 0,
+                'actual_salary': 0
+            }
+        
+        yearly_stats[year]['base_salary'] += salary.base_salary
+        yearly_stats[year]['benefits'] += salary.benefits
+        yearly_stats[year]['bonus'] += salary.bonus
+        yearly_stats[year]['insurance'] += salary.insurance
+        yearly_stats[year]['housing_fund'] += salary.housing_fund
+        yearly_stats[year]['actual_salary'] += actual_salary
     
     return render_template('salary_history.html',
                          employee=employee,
-                         salary_history=salary_history)
+                         salary_history=salary_history,
+                         yearly_stats=yearly_stats)
 
 @app.route('/salary/report/<month>')
 @login_required
@@ -452,6 +478,118 @@ def salary_report(month):
     except ValueError:
         flash('无效的月份格式')
         return redirect(url_for('salary_input'))
+
+@app.route('/salary/statistics')
+@login_required
+def salary_statistics():
+    if not session.get('is_admin'):
+        flash('需要管理员权限')
+        return redirect(url_for('login'))
+    
+    # 获取查询参数
+    month = request.args.get('month')
+    dept_id = request.args.get('dept', type=int)
+    position = request.args.get('position')
+    
+    # 科室和职位的对应关系
+    dept_positions = {
+        '经理室': ['总经理', '副总经理', '行政经理'],
+        '财务科': ['会计', '出纳', '财务主管'],
+        '技术科': ['工程师', '架构师', '技术总监'],
+        '销售科': ['销售代表', '大区经理', '客户经理']
+    }
+    
+    # 验证科室和职位的对应关系
+    if dept_id and position:
+        dept = Department.query.get(dept_id)
+        if dept and position not in dept_positions.get(dept.name, []):
+            flash(f'错误：{dept.name}没有{position}这个职位')
+            return redirect(url_for('salary_statistics'))
+    
+    # 构建基础查询
+    query = db.session.query(
+        Employee,
+        Salary,
+        Department
+    ).join(
+        Salary,
+        Employee.id == Salary.employee_id
+    ).join(
+        Department,
+        Employee.department_id == Department.id
+    ).filter(
+        Employee.is_active == True
+    )
+    
+    # 应用筛选条件
+    if month:
+        month_date = datetime.strptime(month, '%Y-%m')
+        query = query.filter(Salary.month == month_date)
+    
+    if dept_id:
+        query = query.filter(Employee.department_id == dept_id)
+    
+    if position:
+        query = query.filter(Employee.position == position)
+    
+    # 执行查询
+    results = query.all()
+    
+    # 统计数据
+    stats = {
+        'total_employees': 0,
+        'total_base_salary': 0,
+        'total_benefits': 0,
+        'total_bonus': 0,
+        'total_insurance': 0,
+        'total_housing_fund': 0,
+        'total_actual_salary': 0,
+        'by_department': {},
+        'by_position': {}
+    }
+    
+    for emp, salary, dept in results:
+        actual_salary = salary.base_salary + salary.benefits + salary.bonus - salary.insurance - salary.housing_fund
+        
+        # 更新总计
+        stats['total_employees'] += 1
+        stats['total_base_salary'] += salary.base_salary
+        stats['total_benefits'] += salary.benefits
+        stats['total_bonus'] += salary.bonus
+        stats['total_insurance'] += salary.insurance
+        stats['total_housing_fund'] += salary.housing_fund
+        stats['total_actual_salary'] += actual_salary
+        
+        # 按部门统计
+        if dept.name not in stats['by_department']:
+            stats['by_department'][dept.name] = {
+                'count': 0,
+                'total_salary': 0
+            }
+        stats['by_department'][dept.name]['count'] += 1
+        stats['by_department'][dept.name]['total_salary'] += actual_salary
+        
+        # 按职位统计
+        if emp.position not in stats['by_position']:
+            stats['by_position'][emp.position] = {
+                'count': 0,
+                'total_salary': 0
+            }
+        stats['by_position'][emp.position]['count'] += 1
+        stats['by_position'][emp.position]['total_salary'] += actual_salary
+    
+    # 获取所有职位，但按科室分组
+    positions_by_dept = {}
+    for dept in Department.query.all():
+        positions_by_dept[dept.name] = dept_positions.get(dept.name, [])
+    
+    return render_template('salary_statistics.html',
+                         stats=stats,
+                         departments=Department.query.all(),
+                         positions_by_dept=positions_by_dept,
+                         current_month=month,
+                         current_dept=dept_id,
+                         current_position=position)
 
 @app.before_first_request
 def create_tables():

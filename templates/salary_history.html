@@ -7,33 +7,78 @@
         <button onclick="history.back()" class="btn btn-secondary">返回</button>
     </div>
     
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>月份</th>
-                    <th>基本工资</th>
-                    <th>津贴</th>
-                    <th>奖金</th>
-                    <th>保险</th>
-                    <th>住房公积金</th>
-                    <th>实际工资</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for salary in salary_history %}
-                <tr>
-                    <td>{{ salary.month.strftime('%Y-%m') }}</td>
-                    <td>{{ "%.2f"|format(salary.base_salary) }}</td>
-                    <td>{{ "%.2f"|format(salary.benefits) }}</td>
-                    <td>{{ "%.2f"|format(salary.bonus) }}</td>
-                    <td>{{ "%.2f"|format(salary.insurance) }}</td>
-                    <td>{{ "%.2f"|format(salary.housing_fund) }}</td>
-                    <td>{{ "%.2f"|format(salary.actual_salary) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- 年度工资统计 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">年度工资统计</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>年份</th>
+                            <th>基本工资总额</th>
+                            <th>津贴总额</th>
+                            <th>奖金总额</th>
+                            <th>保险总额</th>
+                            <th>住房公积金总额</th>
+                            <th>实际工资总额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for year, stats in yearly_stats.items() %}
+                        <tr>
+                            <td>{{ year }}</td>
+                            <td>{{ "%.2f"|format(stats.base_salary) }}</td>
+                            <td>{{ "%.2f"|format(stats.benefits) }}</td>
+                            <td>{{ "%.2f"|format(stats.bonus) }}</td>
+                            <td>{{ "%.2f"|format(stats.insurance) }}</td>
+                            <td>{{ "%.2f"|format(stats.housing_fund) }}</td>
+                            <td>{{ "%.2f"|format(stats.actual_salary) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 月度工资明细 -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">月度工资明细</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>月份</th>
+                            <th>基本工资</th>
+                            <th>津贴</th>
+                            <th>奖金</th>
+                            <th>保险</th>
+                            <th>住房公积金</th>
+                            <th>实际工资</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for salary in salary_history %}
+                        <tr>
+                            <td>{{ salary.month.strftime('%Y-%m') }}</td>
+                            <td>{{ "%.2f"|format(salary.base_salary) }}</td>
+                            <td>{{ "%.2f"|format(salary.benefits) }}</td>
+                            <td>{{ "%.2f"|format(salary.bonus) }}</td>
+                            <td>{{ "%.2f"|format(salary.insurance) }}</td>
+                            <td>{{ "%.2f"|format(salary.housing_fund) }}</td>
+                            <td>{{ "%.2f"|format(salary.actual_salary) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %} 
