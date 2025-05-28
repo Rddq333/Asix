@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>添加新员工</h2>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <form method="POST" class="mt-4">
+        <div class="row">
+            <div class="col-md-6">
+                <h4>基本信息</h4>
+                <div class="mb-3">
+                    <label for="name" class="form-label">姓名</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="gender" class="form-label">性别</label>
+                    <select class="form-select" id="gender" name="gender" required>
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="age" class="form-label">年龄</label>
+                    <input type="number" class="form-control" id="age" name="age" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="department_id" class="form-label">部门</label>
+                    <select class="form-select" id="department_id" name="department_id" required>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="position" class="form-label">职位</label>
+                    <input type="text" class="form-control" id="position" name="position" required>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <h4>工资信息</h4>
+                <div class="mb-3">
+                    <label for="base_salary" class="form-label">基本工资</label>
+                    <input type="number" step="0.01" class="form-control" id="base_salary" name="base_salary" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="benefits" class="form-label">津贴</label>
+                    <input type="number" step="0.01" class="form-control" id="benefits" name="benefits" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="bonus" class="form-label">奖金</label>
+                    <input type="number" step="0.01" class="form-control" id="bonus" name="bonus" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="insurance" class="form-label">保险</label>
+                    <input type="number" step="0.01" class="form-control" id="insurance" name="insurance" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="housing_fund" class="form-label">住房公积金</label>
+                    <input type="number" step="0.01" class="form-control" id="housing_fund" name="housing_fund" required>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">添加员工</button>
+            <a href="{{ url_for('employee_list') }}" class="btn btn-secondary">返回列表</a>
+        </div>
+    </form>
+</div>
+{% endblock %} 

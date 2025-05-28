@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ employee.name }} 的工资历史记录</h2>
+        <button onclick="history.back()" class="btn btn-secondary">返回</button>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>月份</th>
+                    <th>基本工资</th>
+                    <th>津贴</th>
+                    <th>奖金</th>
+                    <th>保险</th>
+                    <th>住房公积金</th>
+                    <th>实际工资</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for salary in salary_history %}
+                <tr>
+                    <td>{{ salary.month.strftime('%Y-%m') }}</td>
+                    <td>{{ "%.2f"|format(salary.base_salary) }}</td>
+                    <td>{{ "%.2f"|format(salary.benefits) }}</td>
+                    <td>{{ "%.2f"|format(salary.bonus) }}</td>
+                    <td>{{ "%.2f"|format(salary.insurance) }}</td>
+                    <td>{{ "%.2f"|format(salary.housing_fund) }}</td>
+                    <td>{{ "%.2f"|format(salary.actual_salary) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

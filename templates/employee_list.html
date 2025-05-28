@@ -2,7 +2,13 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>在职员工列表</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>在职员工列表</h2>
+        <div>
+            <a href="{{ url_for('salary_input') }}" class="btn btn-warning me-2">工资录入</a>
+            <a href="{{ url_for('add_employee') }}" class="btn btn-success">添加新员工</a>
+        </div>
+    </div>
     
     <!-- 科室筛选 -->
     <div class="mb-3">
@@ -10,7 +16,7 @@
             <option value="{{ url_for('employee_list') }}">所有科室</option>
             {% for dept in departments %}
             <option value="{{ url_for('employee_list', dept=dept.id) }}" 
-                    {% if request.args.get('dept')|int == dept.id %}selected{% endif %}>
+                    {% if current_dept == dept.id %}selected{% endif %}>
                 {{ dept.name }}
             </option>
             {% endfor %}
@@ -34,7 +40,7 @@
                     <th>年龄</th>
                     <th>部门</th>
                     <th>职位</th>
-                    <th>基本工资</th>
+                    <th>实际工资</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -49,6 +55,7 @@
                     <td>{{ "%.2f"|format(salary) }}</td>
                     <td>
                         <a href="{{ url_for('edit_employee', id=emp.id) }}" class="btn btn-primary btn-sm">编辑</a>
+                        <a href="{{ url_for('salary_history', employee_id=emp.id) }}" class="btn btn-info btn-sm">工资记录</a>
                         <form action="{{ url_for('resign_employee', id=emp.id) }}" method="POST" style="display: inline;">
                             <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要将该员工标记为离职吗？')">离职</button>
                         </form>
@@ -57,6 +64,36 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- 分页信息 -->
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+            共 {{ total }} 条记录，每页 {{ per_page }} 条
+        </div>
+        <!-- 分页导航 -->
+        {% if total_pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination mb-0">
+                <!-- 上一页 -->
+                <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('employee_list', page=current_page-1, dept=current_dept) if current_page > 1 else '#' }}">上一页</a>
+                </li>
+                
+                <!-- 页码 -->
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == current_page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('employee_list', page=p, dept=current_dept) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                
+                <!-- 下一页 -->
+                <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('employee_list', page=current_page+1, dept=current_dept) if current_page < total_pages else '#' }}">下一页</a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
