@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>在职员工列表</h2>
+    
+    <!-- 科室筛选 -->
+    <div class="mb-3">
+        <select class="form-select" onchange="location = this.value;">
+            <option value="{{ url_for('employee_list') }}">所有科室</option>
+            {% for dept in departments %}
+            <option value="{{ url_for('employee_list', dept=dept.id) }}" 
+                    {% if request.args.get('dept')|int == dept.id %}selected{% endif %}>
+                {{ dept.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>性别</th>
+                    <th>年龄</th>
+                    <th>部门</th>
+                    <th>职位</th>
+                    <th>基本工资</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp, salary in employees %}
+                <tr>
+                    <td>{{ emp.name }}</td>
+                    <td>{{ emp.gender }}</td>
+                    <td>{{ emp.age }}</td>
+                    <td>{{ emp.department.name }}</td>
+                    <td>{{ emp.position }}</td>
+                    <td>{{ "%.2f"|format(salary) }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_employee', id=emp.id) }}" class="btn btn-primary btn-sm">编辑</a>
+                        <form action="{{ url_for('resign_employee', id=emp.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要将该员工标记为离职吗？')">离职</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
