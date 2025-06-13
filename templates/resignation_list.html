@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>辞职申请列表</h2>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>部门</th>
+                            <th>职位</th>
+                            <th>申请日期</th>
+                            <th>辞职日期</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for resign in resignations %}
+                        <tr>
+                            <td>{{ resign.name }}</td>
+                            <td>{{ resign.department }}</td>
+                            <td>{{ resign.position }}</td>
+                            <td>{{ resign.apply_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>{{ resign.resign_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if resign.status == 'pending' %}
+                                <span class="badge bg-warning">待处理</span>
+                                {% elif resign.status == 'approved' %}
+                                <span class="badge bg-success">已批准</span>
+                                {% else %}
+                                <span class="badge bg-danger">已拒绝</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if resign.status == 'pending' %}
+                                <form action="{{ url_for('process_resignation', id=resign.id) }}" method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('确定批准该辞职申请吗？')">批准</button>
+                                </form>
+                                <form action="{{ url_for('process_resignation', id=resign.id) }}" method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定拒绝该辞职申请吗？')">拒绝</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

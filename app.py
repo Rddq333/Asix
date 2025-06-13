@@ -7,11 +7,13 @@ from functools import wraps
 from extensions import db
 from sqlalchemy.orm import joinedload
 from datetime import datetime
+from flask_migrate import Migrate
 
 
 app = Flask(__name__)
 app.config.from_object(config)
 db.init_app(app)
+migrate = Migrate(app, db)
 
 # 在 db 初始化之后导入模型
 from models import *
@@ -31,14 +33,124 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        
+        # 查找用户
         user = User.query.filter_by(username=username).first()
         
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['is_admin'] = user.is_admin
-            return redirect(url_for('employee_list'))
-        return render_template('login.html', error='用户名或密码错误')
+            
+            # 如果是管理员，重定向到员工列表
+            if user.is_admin:
+                return redirect(url_for('employee_list'))
+            else:
+                # 如果是普通员工，查找对应的员工信息
+                employee = Employee.query.filter_by(employee_id=username).first()
+                if employee:
+                    return redirect(url_for('employee_dashboard'))
+                else:
+                    flash('未找到对应的员工信息')
+                    return redirect(url_for('logout'))
+        
+        flash('用户名或密码错误')
+        return render_template('login.html')
+    
     return render_template('login.html')
+
+# 普通员工仪表板
+@app.route('/dashboard')
+@login_required
+def employee_dashboard():
+    if session.get('is_admin'):
+        return redirect(url_for('employee_list'))
+    
+    user = User.query.get(session['user_id'])
+    employee = Employee.query.filter_by(employee_id=user.username).first()
+    
+    if not employee:
+        flash('未找到对应的员工信息')
+        return redirect(url_for('logout'))
+    
+    # 获取员工最新的工资信息
+    latest_salary = Salary.query.filter_by(
+        employee_id=employee.id
+    ).order_by(Salary.month.desc()).first()
+    
+    return render_template('employee_dashboard.html',
+                         employee=employee,
+                         salary=latest_salary)
+
+# 提交辞职申请
+@app.route('/resignation/apply', methods=['GET', 'POST'])
+@login_required
+def apply_resignation():
+    if session.get('is_admin'):
+        return redirect(url_for('employee_list'))
+    
+    user = User.query.get(session['user_id'])
+    employee = Employee.query.filter_by(employee_id=user.username).first()
+    
+    if not employee:
+        flash('未找到对应的员工信息')
+        return redirect(url_for('logout'))
+    
+    if request.method == 'POST':
+        try:
+            resign = Resignation(
+                employee_id=employee.id,
+                resign_date=datetime.strptime(request.form.get('resign_date'), '%Y-%m-%d'),
+                name=employee.name,
+                department=employee.department.name,
+                position=employee.position,
+                status='pending'  # 添加状态字段：pending（待处理）
+            )
+            db.session.add(resign)
+            db.session.commit()
+            flash('辞职申请已提交，等待管理员审核')
+            return redirect(url_for('employee_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'提交失败：{str(e)}')
+    
+    return render_template('apply_resignation.html', employee=employee)
+
+# 管理员查看辞职申请列表
+@app.route('/resignations')
+@login_required
+def resignation_list():
+    if not session.get('is_admin'):
+        flash('需要管理员权限')
+        return redirect(url_for('login'))
+    
+    resignations = Resignation.query.order_by(Resignation.resign_date.desc()).all()
+    return render_template('resignation_list.html', resignations=resignations)
+
+# 管理员处理辞职申请
+@app.route('/resignation/process/<int:id>', methods=['POST'])
+@login_required
+def process_resignation(id):
+    if not session.get('is_admin'):
+        flash('需要管理员权限')
+        return redirect(url_for('login'))
+    
+    resignation = Resignation.query.get_or_404(id)
+    action = request.form.get('action')
+    
+    if action == 'approve':
+        # 更新员工状态为离职
+        employee = Employee.query.get(resignation.employee_id)
+        if employee:
+            employee.is_active = False
+            resignation.status = 'approved'
+            db.session.commit()
+            flash('已批准辞职申请并更新员工状态')
+    elif action == 'reject':
+        resignation.status = 'rejected'
+        db.session.commit()
+        flash('已拒绝辞职申请')
+    
+    return redirect(url_for('resignation_list'))
 
 # 登出路由
 @app.route('/logout')
@@ -174,32 +286,24 @@ def edit_employee(id):
                          salary=latest_salary,
                          departments=Department.query.all())
 
-# 其他路由...
-# 添加在 employee_list 路由下方
 @app.route('/resign/<int:id>', methods=['POST'])
 @login_required
 def resign_employee(id):
     if not session.get('is_admin'):
         flash('需要管理员权限')
         return redirect(url_for('login'))
-    
-    # 标记员工为离职
-    emp = Employee.query.get_or_404(id)
-    emp.is_active = False
-    
-    # 创建离职记录
+    employee = Employee.query.get_or_404(id)
+    employee.is_active = False
     resign = Resignation(
-        employee_id=emp.id,
+        employee_id=employee.id,
         resign_date=datetime.now(),
-        name=emp.name,
-        department=emp.department.name,
-        position=emp.position
+        name=employee.name,
+        department=employee.department.name,
+        position=employee.position
     )
-    
     db.session.add(resign)
     db.session.commit()
-    
-    flash(f'{emp.name} 离职登记成功')
+    flash('离职登记成功')
     return redirect(url_for('employee_list'))
 
 @app.route('/employee/add', methods=['GET', 'POST'])
@@ -594,6 +698,9 @@ def salary_statistics():
 @app.before_first_request
 def create_tables():
     with app.app_context():
+        # 删除所有表
+        db.drop_all()
+        # 创建所有表
         db.create_all()
         
         # 初始化部门
@@ -620,11 +727,15 @@ def create_tables():
             }
             
             # 生成50个员工
-            for _ in range(50):
+            for i in range(50):
                 dept = random.choice(Department.query.all())
+                
+                # 生成6位工号（从100001开始）
+                employee_id = str(100001 + i)
                 
                 # 创建员工
                 emp = Employee(
+                    employee_id=employee_id,
                     name=fake.name(),  # 使用faker生成中文名
                     gender=random.choice(['男', '女']),
                     age=random.randint(22, 55),
@@ -634,6 +745,15 @@ def create_tables():
                 )
                 db.session.add(emp)
                 db.session.commit()  # 先提交员工数据，确保有ID
+
+                # 为每个员工创建用户账号
+                user = User(
+                    username=employee_id,  # 使用工号作为用户名
+                    password=generate_password_hash('123456'),  # 默认密码123456
+                    is_admin=False,
+                    department_id=dept.id
+                )
+                db.session.add(user)
 
                 # 为每个员工生成12个月的工资记录
                 for month in range(1, 13):
@@ -656,14 +776,15 @@ def create_tables():
                         resign_date=resign_date,
                         name=emp.name,
                         department=dept.name,
-                        position=emp.position
+                        position=emp.position,
+                        status='approved'  # 添加状态字段
                     )
                     db.session.add(resign)
 
             db.session.commit()
 
         # 创建测试管理员用户
-        if not User.query.first():
+        if not User.query.filter_by(is_admin=True).first():
             admin_dept = Department.query.filter_by(name='经理室').first()
             admin = User(
                 username='admin',

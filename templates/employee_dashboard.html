@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-info">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3>个人信息</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>工号：</strong>{{ employee.employee_id }}</p>
+                    <p><strong>姓名：</strong>{{ employee.name }}</p>
+                    <p><strong>性别：</strong>{{ employee.gender }}</p>
+                    <p><strong>年龄：</strong>{{ employee.age }}</p>
+                    <p><strong>部门：</strong>{{ employee.department.name }}</p>
+                    <p><strong>职位：</strong>{{ employee.position }}</p>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3>工资信息</h3>
+                </div>
+                <div class="card-body">
+                    {% if salary %}
+                    <p><strong>基本工资：</strong>¥{{ "%.2f"|format(salary.base_salary) }}</p>
+                    <p><strong>福利补贴：</strong>¥{{ "%.2f"|format(salary.benefits) }}</p>
+                    <p><strong>奖励工资：</strong>¥{{ "%.2f"|format(salary.bonus) }}</p>
+                    <p><strong>失业保险：</strong>¥{{ "%.2f"|format(salary.insurance) }}</p>
+                    <p><strong>住房公积金：</strong>¥{{ "%.2f"|format(salary.housing_fund) }}</p>
+                    <p><strong>实际工资：</strong>¥{{ "%.2f"|format(salary.base_salary + salary.benefits + salary.bonus - salary.insurance - salary.housing_fund) }}</p>
+                    {% else %}
+                    <p>暂无工资信息</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3>操作</h3>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('apply_resignation') }}" class="btn btn-warning">提交辞职申请</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

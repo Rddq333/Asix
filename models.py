@@ -1,4 +1,5 @@
 from extensions import db
+from datetime import datetime
 
 class Department(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -7,6 +8,7 @@ class Department(db.Model):
 
 class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.String(6), unique=True, nullable=False)  # 6位工号
     name = db.Column(db.String(20), nullable=False)
     gender = db.Column(db.String(2), nullable=False)
     age = db.Column(db.Integer, nullable=False)
@@ -32,6 +34,8 @@ class Resignation(db.Model):
     name = db.Column(db.String(20))
     department = db.Column(db.String(20))
     position = db.Column(db.String(20))
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    apply_date = db.Column(db.DateTime, default=datetime.now)
 
 
 # 需要确保User模型中的password字段长度设置为256
