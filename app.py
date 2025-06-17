@@ -528,7 +528,7 @@ def salary_report(month):
         # 将月份字符串转换为datetime对象
         report_month = datetime.strptime(month, '%Y-%m')
         
-        # 获取所有部门的工资信息，按部门排序
+        # 获取所有部门的工资信息，按部门ID排序
         departments = Department.query.order_by(Department.id).all()
         
         # 存储每个部门的工资信息
@@ -568,11 +568,12 @@ def salary_report(month):
             # 按基本工资降序排序
             dept_employees.sort(key=lambda x: x['base_salary'], reverse=True)
             
-            dept_salaries[dept.name] = {
-                'employees': dept_employees,
-                'total': dept_total
-            }
-            total_salary += dept_total
+            if dept_employees:  # 只添加有员工的部门
+                dept_salaries[dept.name] = {
+                    'employees': dept_employees,
+                    'total': dept_total
+                }
+                total_salary += dept_total
         
         return render_template('salary_report.html',
                              month=month,
@@ -694,6 +695,81 @@ def salary_statistics():
                          current_month=month,
                          current_dept=dept_id,
                          current_position=position)
+
+@app.route('/resigned/employees')
+@login_required
+def resigned_employees():
+    if not session.get('is_admin'):
+        flash('需要管理员权限')
+        return redirect(url_for('login'))
+    
+    # 获取查询参数
+    name = request.args.get('name', '')
+    dept_id = request.args.get('dept', type=int)
+    resign_date = request.args.get('resign_date', '')
+    
+    # 构建基础查询
+    query = Resignation.query.join(
+        Employee,
+        Resignation.employee_id == Employee.id
+    ).join(
+        Department,
+        Employee.department_id == Department.id
+    )
+    
+    # 应用筛选条件
+    if name:
+        query = query.filter(Resignation.name.like(f'%{name}%'))
+    if dept_id:
+        query = query.filter(Employee.department_id == dept_id)
+    if resign_date:
+        try:
+            date = datetime.strptime(resign_date, '%Y-%m')
+            query = query.filter(
+                db.func.date_format(Resignation.resign_date, '%Y-%m') == resign_date
+            )
+        except ValueError:
+            flash('无效的日期格式')
+    
+    # 执行查询并按辞职日期降序排序
+    resignations = query.order_by(Resignation.resign_date.desc()).all()
+    
+    # 获取每个辞职员工的工资历史
+    resigned_employees = []
+    for resign in resignations:
+        employee = Employee.query.get(resign.employee_id)
+        if employee:
+            # 获取该员工的所有工资记录
+            salaries = Salary.query.filter_by(
+                employee_id=employee.id
+            ).order_by(Salary.month.desc()).all()
+            
+            # 计算工资历史
+            salary_history = []
+            for salary in salaries:
+                actual_salary = salary.base_salary + salary.benefits + salary.bonus - salary.insurance - salary.housing_fund
+                salary_history.append({
+                    'month': salary.month,
+                    'base_salary': salary.base_salary,
+                    'benefits': salary.benefits,
+                    'bonus': salary.bonus,
+                    'insurance': salary.insurance,
+                    'housing_fund': salary.housing_fund,
+                    'actual_salary': actual_salary
+                })
+            
+            resigned_employees.append({
+                'resignation': resign,
+                'employee': employee,
+                'salary_history': salary_history
+            })
+    
+    return render_template('resigned_employees.html',
+                         resigned_employees=resigned_employees,
+                         departments=Department.query.all(),
+                         current_name=name,
+                         current_dept=dept_id,
+                         current_date=resign_date)
 
 @app.before_first_request
 def create_tables():

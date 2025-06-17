@@ -3,42 +3,69 @@
 <head>
     <title>工资管理系统</title>
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        .navbar {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .user-info {
+            color: #666;
+            margin-right: 15px;
+        }
+        .container {
+            padding-top: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        {% if session.get('user_id') %}
-        <h2 class="my-4">员工工资管理系统</h2>
+        {% if session.get('user_id') and request.endpoint != 'login' %}
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="#">工资管理系统</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    {% if session.get('is_admin') %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('employee_list') }}">员工管理</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('salary_input') }}">工资录入</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('salary_statistics') }}">工资统计</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('resignation_list') }}">辞职申请</a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('employee_dashboard') }}">我的信息</a>
-                    </li>
-                    {% endif %}
-                </ul>
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">退出登录</a>
-                    </li>
-                </ul>
+            <div class="container">
+                <a class="navbar-brand" href="#">工资管理系统</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav mr-auto">
+                        {% if session.get('is_admin') %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('employee_list') }}">员工管理</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('salary_input') }}">工资录入</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('salary_statistics') }}">工资统计</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('resignation_list') }}">辞职申请</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('resigned_employees') }}">辞职人员查询</a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('employee_dashboard') }}">我的信息</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div class="navbar-nav">
+                        <span class="user-info">
+                            {% if session.get('is_admin') %}
+                            管理员
+                            {% else %}
+                            员工用户
+                            {% endif %}
+                        </span>
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> 退出登录
+                        </a>
+                    </div>
+                </div>
             </div>
         </nav>
         {% endif %}
@@ -46,5 +73,6 @@
     </div>
     <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="https://cdn.bootcss.com/font-awesome/5.15.4/js/all.min.js"></script>
 </body>
 </html>

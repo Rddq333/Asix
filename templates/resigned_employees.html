@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3>辞职人员查询</h3>
+        </div>
+        <div class="card-body">
+            <!-- 搜索表单 -->
+            <form method="GET" class="mb-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="name">员工姓名</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ current_name }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="dept">所属部门</label>
+                            <select class="form-control" id="dept" name="dept">
+                                <option value="">全部部门</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if current_dept == dept.id %}selected{% endif %}>
+                                    {{ dept.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="resign_date">辞职月份</label>
+                            <input type="month" class="form-control" id="resign_date" name="resign_date" value="{{ current_date }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary btn-block">查询</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- 查询结果 -->
+            {% if resigned_employees %}
+            {% for data in resigned_employees %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>{{ data.employee.name }} - {{ data.employee.department.name }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>工号：</strong>{{ data.employee.employee_id }}</p>
+                            <p><strong>职位：</strong>{{ data.employee.position }}</p>
+                            <p><strong>辞职日期：</strong>{{ data.resignation.resign_date.strftime('%Y-%m-%d') }}</p>
+                            <p><strong>辞职状态：</strong>
+                                {% if data.resignation.status == 'pending' %}
+                                <span class="badge badge-warning">待处理</span>
+                                {% elif data.resignation.status == 'approved' %}
+                                <span class="badge badge-success">已批准</span>
+                                {% elif data.resignation.status == 'rejected' %}
+                                <span class="badge badge-danger">已拒绝</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <h5>工资历史记录</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>月份</th>
+                                    <th>基本工资</th>
+                                    <th>福利补贴</th>
+                                    <th>奖励工资</th>
+                                    <th>失业保险</th>
+                                    <th>住房公积金</th>
+                                    <th>实际工资</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for salary in data.salary_history %}
+                                <tr>
+                                    <td>{{ salary.month.strftime('%Y-%m') }}</td>
+                                    <td>¥{{ "%.2f"|format(salary.base_salary) }}</td>
+                                    <td>¥{{ "%.2f"|format(salary.benefits) }}</td>
+                                    <td>¥{{ "%.2f"|format(salary.bonus) }}</td>
+                                    <td>¥{{ "%.2f"|format(salary.insurance) }}</td>
+                                    <td>¥{{ "%.2f"|format(salary.housing_fund) }}</td>
+                                    <td>¥{{ "%.2f"|format(salary.actual_salary) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="alert alert-info">
+                未找到符合条件的辞职人员记录
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
